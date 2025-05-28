@@ -22,8 +22,8 @@ set.seed(123)
 library(caret)
 library(tidyverse)
 
-penguins_clean <- penguins %>%
-  remove_missing() %>%
+penguins_clean <- penguins |>
+  remove_missing() |>
   as_tibble()
 
 # CARET ADVANTAGE 1: STRATIFIED DATA SPLITTING
