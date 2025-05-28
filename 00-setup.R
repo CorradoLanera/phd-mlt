@@ -10,7 +10,7 @@ pak::pkg_install(c(
   # eval
   c("pROC", "skimr"),
   # infrastructure
-  c("tidyverse", "patchwork")
+  c("tidyverse", "patchwork", "caret")
 ), dependencies = TRUE)
 
 renv::snapshot()
