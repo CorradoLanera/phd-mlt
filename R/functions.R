@@ -85,7 +85,7 @@ define_model_spec <- function(model_type) {
     "tree" = decision_tree(cost_complexity = tune(), min_n = tune(), tree_depth = tune()) |>
       set_engine("rpart") |>
       set_mode("classification"),
-    "rf" = rand_forest(mtry = tune(), trees = 5000, min_n = tune()) |> # trees set high as in 03-tidymodels.R
+    "rf" = rand_forest(mtry = tune(), trees = 3000, min_n = tune()) |> # trees set high as in 03-tidymodels.R
       set_engine("ranger", importance = "permutation") |>
       set_mode("classification"),
     stop("Unknown model_type: ", model_type)
@@ -121,7 +121,7 @@ create_tidymodels_workflow <- function(model_recipe, model_spec) {
 #' @param v Number of folds.
 #' @param strata_var Variable to stratify by.
 #' @return An `rset` object (e.g., `vfold_cv`).
-define_cv_folds <- function(data, v = 10, strata_var = "island") {
+define_cv_folds <- function(data, v = 5, strata_var = "island") {
   vfold_cv(data, v = v, strata = {{ strata_var }})
 }
 

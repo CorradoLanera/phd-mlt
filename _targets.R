@@ -12,7 +12,7 @@ tar_option_set(
     "kknn", "kernlab", "rpart", "ranger", # Model engines
     "vip", "knitr", "DT", "patchwork" # For report and variable importance
   ),
-  error = "continue",
+  error = "abridge",
   # optional parallel processing
   controller = crew::crew_controller_local(
     name = "phd-mlt",
@@ -155,19 +155,8 @@ list(
   ),
   tar_target(
     final_rf_vip_plot,
-    {
-      # Ensure the model fit object is extracted correctly for vip
-      fit_obj <- extract_fit_parsnip(final_rf_trained_workflow)
-      if (inherits(fit_obj$fit, "ranger")) {
-        vip::vip(fit_obj) +
-          labs(
-            title = "Variable Importance - Final Random Forest Model"
-          )
-      } else {
-        message("VIP plot not generated: final RF model fit is not of expected 'ranger' class.")
-        NULL
-      }
-    }
+    vip::vip(extract_fit_parsnip(final_rf_trained_workflow)) +
+      labs(title = "Variable Importance - Final Random Forest Model")
   ),
 
   # 6. Report Generation
