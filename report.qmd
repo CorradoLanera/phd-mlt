@@ -1,0 +1,202 @@
+---
+title: "Tidymodels Workflow Report: Penguin Classification"
+author: "Automated Pipeline with `targets` and `tidymodels`"
+date: today
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    theme: cosmo
+    embed-resources: true
+    code-fold: true
+    code-summary: "Show R Code"
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+## Introduction
+
+This report details an automated machine learning workflow for classifying penguin species (`island` variable) from the Palmer Penguins dataset. The workflow is built using the `tidymodels` framework and orchestrated by the `targets` package, emphasizing reproducibility, modularity, and maintainability.
+
+We explore four classification algorithms:
+
+* k-Nearest Neighbors (kNN)
+* Support Vector Machine (SVM) with a Linear Kernel
+* Decision Tree (CART/rpart)
+* Random Forest
+
+The process includes data preprocessing, hyperparameter tuning via cross-validation, model comparison, and final evaluation of the selected best model on a held-out test set.
+
+```{r setup, include=FALSE}
+library(targets)
+library(tidyverse)
+library(tidymodels)
+library(knitr)
+library(DT)
+library(patchwork)
+library(usethis)
+library(vip)
+```
+
+## Data Preparation and Splitting
+
+The native `penguins` dataset from the `datasets` package was used. After removing rows with missing values, the data was split into training (70%) and testing (30%) sets, stratified by the `island` variable.
+
+```{r load-data-info, echo=TRUE}
+# Load data summary if needed (e.g., dimensions)
+train_df_summary <- tar_read(train_df)
+test_df_summary <- tar_read(test_df)
+
+ui_info("Training data dimensions: {paste(dim(train_df_summary))}")
+ui_info("Test data dimensions: {paste(dim(test_df_summary))}")
+ui_info(
+  "Island distribution in training data:\n{table(train_df_summary$island)}"
+)
+
+```
+
+A preprocessing `recipe` was defined to:
+1. Convert nominal predictors (like `sex`) to dummy variables.
+2. Remove zero-variance predictors.
+3. Normalize (center and scale) numeric predictors.
+
+## Hyperparameter Tuning via Cross-Validation
+
+All models underwent hyperparameter tuning using 10-fold cross-validation on the training data. The primary metric for selecting the best hyperparameters was the Area Under the ROC Curve (AUC).
+
+The following models and hyperparameter grids were explored:
+
+* **k-Nearest Neighbors (kNN)**: Tuned `neighbors` (1 to 30).
+* **Support Vector Machine (SVM) - Linear Kernel**: Tuned `cost` (log-scale from 0.001 to 100).
+* **Decision Tree**: Tuned `cost_complexity` (log-scale), `min_n` (minimum node size), and `tree_depth`.
+* **Random Forest**: Tuned `mtry` (number of predictors to sample at each split) and `min_n`. Number of trees was fixed at 5000.
+
+### Tuning Results Visualization
+
+The `autoplot()` function from `tidymodels` provides a quick overview of tuning results for each model.
+
+```{r load-tuning-results, echo=TRUE}
+knn_tuned_plot_data <- tar_read(knn_tuned_res)
+svm_tuned_plot_data <- tar_read(svm_tuned_res)
+tree_tuned_plot_data <- tar_read(tree_tuned_res)
+rf_tuned_plot_data <- tar_read(rf_tuned_res)
+```
+
+:::: {.columns}
+
+::: {.column width="50%"}
+**k-Nearest Neighbors**
+```{r plot-knn-tuning, fig.cap="kNN Tuning: ROC AUC vs. Neighbors"}
+autoplot(knn_tuned_plot_data)
+```
+:::
+
+::: {.column width="50%"}
+**SVM (Linear Kernel)**
+```{r plot-svm-tuning, fig.cap="SVM Linear Tuning: ROC AUC vs. Cost"}
+autoplot(svm_tuned_plot_data)
+```
+:::
+
+::::
+
+:::: {.columns}
+
+::: {.column width="50%"}
+**Decision Tree**
+```{r plot-tree-tuning, fig.cap="Decision Tree Tuning"}
+autoplot(tree_tuned_plot_data)
+```
+:::
+
+::: {.column width="50%"}
+**Random Forest**
+```{r plot-rf-tuning, fig.cap="Random Forest Tuning"}
+autoplot(rf_tuned_plot_data)
+```
+:::
+
+::::
+
+## Model Comparison (Cross-Validation Performance)
+
+The performance of the best hyperparameter set for each model type, based on mean ROC AUC from cross-validation, is compared below.
+
+```{r comparison-plot, echo=TRUE, fig.cap="Comparison of Mean ROC AUC from 10-fold CV"}
+comparison_plot <- tar_read(tuning_comparison_plot)
+print(comparison_plot)
+```
+
+```{r display-tuning-summary-table, echo=TRUE}
+all_tuning_summary_data <- tar_read(all_models_tuning_summary)
+
+all_tuning_summary_data |>
+  filter(.metric == "roc_auc") |>
+  select(
+    model,
+    mean_roc_auc = mean,
+    std_err_roc_auc = std_err,
+    n_configs_tuned = n
+  ) |>
+  arrange(desc(mean_roc_auc)) |>
+  datatable(
+    filter = "top",
+    caption = "Summary of Best ROC AUC from Cross-Validation Tuning"
+  )
+```
+
+Based on the cross-validation results, Random Forest appears to be a strong candidate.
+
+## Final Model Evaluation: Random Forest
+
+The Random Forest model, using its best hyperparameters found during tuning, was finalized by fitting it to the entire training dataset. It was then evaluated on the held-out test set.
+
+```{r load-final-rf-results, echo=TRUE}
+final_rf_metrics_data <- tar_read(final_rf_metrics)
+final_rf_conf_matrix_obj <- tar_read(final_rf_conf_matrix)
+final_rf_vip_plot_obj <- tar_read(final_rf_vip_plot)
+```
+
+### Test Set Performance Metrics
+
+```{r display-final-rf-metrics}
+final_rf_metrics_data |>
+  select(
+    Metric = .metric,
+    Estimator = .estimator,
+    Estimate = .estimate
+  ) |>
+  datatable(
+    filter = "top",
+    caption = "Random Forest Performance on Test Set"
+  )
+```
+
+### Confusion Matrix
+
+```{r display-final-rf-confmat, fig.cap="Confusion Matrix for Final Random Forest Model (Test Set)"}
+autoplot(final_rf_conf_matrix_obj, type = "heatmap")
+```
+
+### Variable Importance
+
+```{r display-final-rf-vip, fig.cap="Variable Importance for Final Random Forest Model"}
+print(final_rf_vip_plot_obj)
+```
+
+## Conclusion
+
+The `tidymodels` framework, orchestrated by `targets`, provides a powerful and organized approach to machine learning. This workflow demonstrated:
+
+* **Modularity**: Clear separation of data processing, model specification, tuning, and evaluation.
+* **Uniformity**: Consistent syntax for various modeling tasks.
+* **Robustness**: Reliable performance estimates through cross-validation.
+* **Reproducibility**: The entire analysis can be easily rerun and verified.
+
+The Random Forest model showed strong performance on this classification task. Further improvements could involve exploring more complex feature engineering, different model types, or more advanced tuning strategies like Bayesian optimization.
+
+---
+*Report generated on: `r Sys.Date()`*
+*All code and results are managed by the `targets` pipeline.*

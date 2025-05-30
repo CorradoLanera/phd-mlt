@@ -182,13 +182,13 @@ ggplot(
 
 
 #-----------------------------------------------------------------------
-# 3. ROBUST MODEL COMPARISON
+# 3. MODEL COMPARISON
 #-----------------------------------------------------------------------
 
 # CARET ADVANTAGE 5: DIRECT AND STATISTICALLY VALID COMPARISON
 # the previous final comparison is based on a single test set!
 # `caret` allows us to compare models based on their average performance
-# during cross-validation, which is a much more robust
+# during cross-validation, which is a more robust
 # The `resamples` function collects CV results from all models.
 
 model_list <- list(
@@ -206,6 +206,11 @@ summary(resampling_results)
 resampling_results |>
   bwplot(
     metric = "AUC",
+    main = "Model Comparison (AUC from Cross-Validation)"
+  )
+resampling_results |>
+  bwplot(
+    metric = "prAUC",
     main = "Model Comparison (AUC from Cross-Validation)"
   )
 

@@ -10,7 +10,11 @@ pak::pkg_install(c(
   # eval
   c("pROC", "skimr", "vip"),
   # infrastructure
-  c("tidyverse", "patchwork", "caret", "tidymodels")
+  c(
+    "tidyverse", "patchwork", "caret", "tidymodels",
+    "targets", "tarchetypes", "crew", "DT", "patchwork"
+  )
 ), dependencies = TRUE)
 
 renv::snapshot()
+targets::use_targets()

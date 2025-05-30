@@ -135,7 +135,6 @@ cv_folds
 
 # Define metrics to evaluate
 # `metric_set` is used to specify which metrics to compute.
-# For classification, common metrics include accuracy, roc_auc, etc.
 class_metrics <- metric_set(accuracy, roc_auc, sensitivity, specificity)
 
 # --- 2.1 k-Nearest Neighbors (kNN) Tuning ---
@@ -143,13 +142,13 @@ knn_grid <- grid_regular(
   neighbors(range = c(1, 30)),
   levels = 30
 )
-knn_tuned_results <- tune_grid(
-  knn_workflow,
-  resamples = cv_folds,
-  grid = knn_grid,
-  metrics = class_metrics,
-  control = control_grid(save_pred = TRUE, verbose = TRUE)
-)
+knn_tuned_results <- knn_workflow |>
+  tune_grid(
+    resamples = cv_folds,
+    grid = knn_grid,
+    metrics = class_metrics,
+    control = control_grid(save_pred = TRUE, verbose = TRUE)
+  )
 
 # TIDYMODELS ADVANTAGE 7: EXPLORING TUNING RESULTS (tune and ggplot2)
 # `collect_metrics()` gathers performance metrics across all tuning parameters.
