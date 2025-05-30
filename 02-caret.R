@@ -35,6 +35,9 @@ train_indices <- createDataPartition(
 train_data <- penguins_clean[train_indices, ]
 test_data  <- penguins_clean[-train_indices, ]
 
+table(penguins_clean$island) / nrow(penguins_clean)
+table(train_data$island) / nrow(train_data)
+table(test_data$island) / nrow(test_data)
 
 #-----------------------------------------------------------------------
 # 1. THE CARET WORKFLOW: AUTOMATION AND ROBUSTNESS
@@ -47,7 +50,7 @@ test_data  <- penguins_clean[-train_indices, ]
 # NB: `classProbs = TRUE` is necessary for calculating AUC.
 train_control <- trainControl(
   method = "cv",
-  number = 10,
+  number = 5,
   classProbs = TRUE,
   summaryFunction = multiClassSummary,
   verboseIter = TRUE
@@ -64,7 +67,7 @@ train_control <- trainControl(
 
 # --- 2.1 k-Nearest Neighbors (kNN) ---
 tune_grid_knn <- expand.grid(
-  kmax = 1:30,
+  kmax = 1:100,
   distance = 2, # kknn default
   kernel = "optimal" ## kknn default
 )
@@ -99,17 +102,19 @@ knn_tuned_model
 knn_tuned_model$bestTune
 knn_tuned_model$finalModel
 
-# The `plot()` command automatically generates tuning curves,
-# replacing all manual ggplot code.
-plot(
+# The `plot()` and `ggplot()` commands automatically generates tuning
+# curves, replacing all manual ggplot code.
+ggplot(
   knn_tuned_model,
-  highlight = TRUE,
-  main = "Tuning Curves for k-NN (via Caret)"
-)
+  highlight = TRUE
+) +
+  labs(
+    titl = "Tuning Curves for k-NN (via Caret)"
+  )
 
 # --- 2.2 Support Vector Machine (SVM) ---
 
-tune_grid_svm <- expand.grid(cost = 0.1 * 10^c(0:4))
+tune_grid_svm <- expand.grid(cost = 0.1 * 10^c(0:6))
 
 svm_tuned_model <- train(
   island ~ bill_len + bill_dep + flipper_len + body_mass + sex,
@@ -122,16 +127,21 @@ svm_tuned_model <- train(
 )
 
 svm_tuned_model
-plot(
+ggplot(
   svm_tuned_model,
-  highlight = TRUE,
-  main = "Tuning Curves for Radial SVM (via Caret)"
-)
+  highlight = TRUE
+) +
+  scale_x_log10() +
+  labs(
+    title = "Tuning Curves for Radial SVM (via Caret)"
+  )
 
 
 # --- 2.3 Decision Tree (rpart) ---
 
-tune_grid_tree <- expand.grid(cp = c(0.001, 0.01, 0.05, 0.1, 0.2))
+tune_grid_tree <- expand.grid(
+  cp = c(0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1)
+)
 
 tree_tuned_model <- train(
   island ~ bill_len + bill_dep + flipper_len + body_mass + sex,
@@ -143,11 +153,14 @@ tree_tuned_model <- train(
 )
 
 tree_tuned_model
-plot(
+ggplot(
   tree_tuned_model,
-  highlight = TRUE,
-  main = "Tuning Curves for Decision Tree (via Caret)"
-)
+  highlight = TRUE
+) +
+  scale_x_log10() +
+  labs(
+    title = "Tuning Curves for Decision Tree (via Caret)"
+  )
 
 
 # --- 2.4 Random Forest ---
@@ -164,16 +177,18 @@ rf_tuned_model <- train(
   trControl = train_control,
   tuneGrid = tune_grid_rf,
   metric = "AUC",
-  ntree = 5000,
+  ntree = 3000,
   importance = TRUE
 )
 
 rf_tuned_model
-plot(
+ggplot(
   rf_tuned_model,
-  highlight = TRUE,
-  main = "Tuning Curves for Random Forest (via Caret)"
-)
+  highlight = TRUE
+) +
+  labs(
+    title = "Tuning Curves for Random Forest (via Caret)"
+  )
 plot(rf_tuned_model$finalModel)
 ggplot(
   varImp(rf_tuned_model, scale = FALSE),
@@ -213,6 +228,8 @@ resampling_results |>
     metric = "prAUC",
     main = "Model Comparison (AUC from Cross-Validation)"
   )
+resampling_results |>
+  bwplot(main = "Model Comparison (from Cross-Validation)")
 
 #-----------------------------------------------------------------------
 # 4. FINAL EVALUATION ON THE TEST SET

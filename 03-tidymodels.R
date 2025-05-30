@@ -23,8 +23,10 @@ set.seed(123)
 
 library(tidymodels)
 library(tidyverse)
+
+# optional parallel processing
 library(future)
-plan(multisession, workers = 4)
+plan(multisession, workers = 2)
 
 # Engine packages (tidymodels separates model specification from the engine)
 library(kknn)
@@ -71,7 +73,7 @@ classification_recipe <- recipe(
 # You can `prep()` and `bake()`:
 prep_recipe <- prep(classification_recipe)
 prep_recipe
-bake(prep_recipe, new_data = NULL) |> glimpse()
+bake(prep_recipe, new_data = NULL)
 
 # TIDYMODELS ADVANTAGE 3: UNIFIED MODEL SPECIFICATION (parsnip package)
 # `parsnip` provides a tidy, unified interface to specify models,
@@ -130,7 +132,7 @@ rf_workflow   <- workflow() |>
 # TIDYMODELS ADVANTAGE 5: ROBUST RESAMPLING FOR TUNING (rsample package)
 # We define our resampling strategy (e.g., cross-validation) once.
 set.seed(456) # Different seed for resampling
-cv_folds <- vfold_cv(train_data, v = 10, strata = island)
+cv_folds <- vfold_cv(train_data, v = 5, strata = island)
 cv_folds
 
 # Define metrics to evaluate
@@ -139,8 +141,8 @@ class_metrics <- metric_set(accuracy, roc_auc, sensitivity, specificity)
 
 # --- 2.1 k-Nearest Neighbors (kNN) Tuning ---
 knn_grid <- grid_regular(
-  neighbors(range = c(1, 30)),
-  levels = 30
+  neighbors(range = c(1, 100)),
+  levels = 100
 )
 knn_tuned_results <- knn_workflow |>
   tune_grid(
@@ -160,7 +162,7 @@ show_best(knn_tuned_results, metric = "roc_auc", n = 5)
 
 
 # --- 2.2 Support Vector Machine (SVM) Linear Tuning ---
-svm_grid <- grid_regular(cost(range = c(-3, 2)), levels = 10)
+svm_grid <- grid_regular(cost(range = c(-6, 10)), levels = 10)
 
 svm_tuned_results <- tune_grid(
   svm_workflow,
@@ -181,7 +183,7 @@ tree_grid <- grid_regular(
   cost_complexity(range = c(-3, -1)),
   min_n(range = c(5, 40)),
   tree_depth(range = c(1, 10)),
-  levels = 5 # 5x5 grid
+  levels = 5
 )
 
 tree_tuned_results <- tune_grid(
@@ -214,7 +216,8 @@ rf_tuned_results <- tune_grid(
 )
 
 collect_metrics(rf_tuned_results)
-autoplot(rf_tuned_results) + labs(title = "Tuning Curves for Random Forest (via Tidymodels)")
+autoplot(rf_tuned_results) +
+  labs(title = "Tuning Curves for Random Forest (via Tidymodels)")
 show_best(rf_tuned_results, metric = "roc_auc", n = 5)
 
 

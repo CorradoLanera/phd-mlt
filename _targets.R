@@ -13,6 +13,11 @@ tar_option_set(
     "vip", "knitr", "DT", "patchwork" # For report and variable importance
   ),
   error = "continue",
+  # optional parallel processing
+  controller = crew::crew_controller_local(
+    name = "phd-mlt",
+    workers = 4, # Adjust based on your system
+  )
 )
 
 # Source functions from R/ directory

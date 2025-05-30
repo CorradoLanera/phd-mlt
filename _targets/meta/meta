@@ -31,6 +31,7 @@ final_rf_trained_workflow|stem|33c2fb42cedfdecb|2988781a555647db|fa7dceefa41dd59
 final_rf_predictions_test|stem|a881d049cc774754|ecfc82c1c1dd6ae0|b86ec43cf85b3463|1627385703||t20238.3589737119s|s2996b|2996|rds|local|vector|||0.016||
 final_rf_vip_plot|stem|859ea2834413d943|f7026bf3cc4997c6|345ae4f2a57153b0|1095566880||t20238.3590061978s|s4381435b|4381435|rds|local|vector|||0.047||
 final_rf_conf_matrix|stem|34c2dc8e3bdbac5e|a58f72b291928ba5|4e2a1f31ffc42566|700520766||t20238.3590076391s|s215b|215|rds|local|vector|||0.016||
+final_report|stem|89ebf030f516f3e9|20b5f991fe6d68ab|f3981b62994ae484|-98219282|report.html*report.qmd|t20238.5262096847s|s2511123b|2511123|file|local|vector|||16.656||
 select_best_hyperparams|function|b787a256c8c6ef95
 split_data|function|af688ed1ad75ca2a
 generate_confusion_matrix|function|6cca091695e6238e
@@ -43,9 +44,8 @@ create_classification_recipe|function|7bd37a02108fa572
 summarize_all_tuning_results|function|78f54318f1bb4ee1
 extract_final_metrics|function|2f4dad7157079940
 extract_final_predictions|function|55ebd0cb61f7e51f
-.Random.seed|object|c4428a9bb340ce21
+.Random.seed|object|7ee7cde0d5ec7fe0
 tune_model_grid|function|ea5094e717c0ebde
 define_classification_metrics|function|f02dccedcc7e6087
 finalize_and_evaluate_model|function|be93656f388b8ec1
 load_and_prep_data|function|cb1ede1069b3dd99
-final_report|stem|89ebf030f516f3e9|20b5f991fe6d68ab|f3981b62994ae484|-98219282|report.html*report.qmd|t20238.5262096847s|s2511123b|2511123|file|local|vector|||16.656||

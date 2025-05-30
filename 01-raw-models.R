@@ -132,13 +132,13 @@ setup_classification_results <- function() {
 }
 
 knn_results <- setup_classification_results()
-for (k in 1:30) {
+for (k in 1:100) {
   knn_results <- knn_results |>
     bind_rows(knn_train(k))
   usethis::ui_done("{k}-NN done.")
 }
 
-classification_results |>
+knn_results |>
   ggplot(aes(par_value, measure_value, color = stage)) +
   geom_line() +
   geom_point() +
@@ -178,8 +178,8 @@ svm_model <- svm(
 )
 
 svm_pred <- predict(svm_model, test_data)
-svm_accuracy <- calculate_accuracy(svm_pred_labels, test_data$island)
-
+svm_accuracy <- calculate_accuracy(svm_pred, test_data$island)
+svm_accuracy
 
 svm_probs <- predict(svm_model, test_data, probability = TRUE) |>
   attr("probabilities")
@@ -191,6 +191,7 @@ levels(test_data$island)
 
 svm_auc <- multiclass.roc(test_data$island, svm_probs) |>
   auc()
+svm_auc
 
 svm_train <- function(kernel, cost, gamma) {
   mod <- svm(
@@ -199,7 +200,8 @@ svm_train <- function(kernel, cost, gamma) {
     probability = TRUE,
     kernel = kernel,
     cost = cost,
-    gamma = gamma
+    gamma = gamma,
+    # cross = 5 # internal cross-validation if cross > 0 folds declared
   )
 
   train_acc <- predict(mod, newdata = train_data) |>
@@ -246,12 +248,12 @@ svm_class_res <- tibble(
 
 i <- 1
 for (kernel in c("linear", "polynomial", "radial")) {
-  for (cost in c(0.1*10^c(0:4))) {
+  for (cost in c(0.1*10^c(0:6))) {
     for (gamma in c(0.01, 0.03, 0.1, 0.3, 1)) {
       svm_class_res <- svm_class_res |>
         bind_rows(svm_train(kernel, cost, gamma))
       usethis::ui_done(
-        "[{i}/{3*5*5}] {kernel} SVM with cost={cost} and gamma={gamma} done."
+        "[{i}/{3*7*5}] {kernel} SVM with cost = {cost} and gamma = {gamma} done."
       )
       i <- i + 1
     }
@@ -337,8 +339,10 @@ tree_pred_labels <- predict(tree_model, test_data, type = "class")
 tree_pred_probs <- predict(tree_model, test_data, type = "prob")
 
 tree_accuracy <- calculate_accuracy(tree_pred_labels, test_data$island)
+tree_accuracy
 tree_auc <- multiclass.roc(test_data$island, tree_pred_probs) |>
   auc()
+tree_auc
 
 tree_train <- function(cp, minsplit, minbucket) {
   mod <- rpart(
@@ -387,13 +391,13 @@ tree_class_res <- tibble(
 )
 
 i <- 1
-for (cp in c(0.001, 0.01, 0.05, 0.1)) {
+for (cp in c(0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1)) {
   for (minsplit in c(10, 20, 30)) {
     for (minbucket in c(3, 5, 7)) {
       tree_class_res <- tree_class_res |>
         bind_rows(tree_train(cp, minsplit, minbucket))
       usethis::ui_done(
-        "[{i}/{4*3*3}] Tree with cp={cp}, minsplit={minsplit}, minbucket={minbucket} done."
+        "[{i}/{7*3*3}] Tree with cp={cp}, minsplit={minsplit}, minbucket={minbucket} done."
       )
       i <- i + 1
     }
@@ -415,6 +419,7 @@ tree_class_res |>
     y = "Performance Measure"
   ) +
   theme_minimal()
+
 
 
 # --- 1.4 Random Forest per Classificazione ---
@@ -461,11 +466,13 @@ as_tibble(errors)
 
 rf_pred <- predict(rf_model, test_data, type = "response")
 rf_accuracy <- calculate_accuracy(rf_pred, test_data$island)
+rf_accuracy
 
 rf_probs <- predict(rf_model, test_data, type = "prob")
 rf_probs <- rf_probs[, levels(test_data$island)]
 rf_auc <- multiclass.roc(test_data$island, rf_probs) |>
   auc()
+rf_auc
 
 rf_train <- function(mtry, ntree = 3000) {
   randomForest(
